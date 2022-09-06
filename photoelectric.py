@@ -36,12 +36,13 @@ class Photon:
 
     # Photon object takes a tuple of 3 integers between 0 and 255 as the colour
     # Also takes a real number as the kin_energy to represent the kinetic energy of the photon
-    def __init__(self, colour, kin_energy):
+    def __init__(self, colour, source, kin_energy):
         self.colour = colour
         self.kinEnergy = kin_energy
-        # Randomises x and y co-ords along the bottom of the lamp image
-        self.x = 500 + 16 + random.randint(0, 180)
-        self.y = 150 + 54 + random.randint(0, 100)
+        # Randomises x and y co-ords along the bottom of the light source image
+        rx, ry = self.random_normal(source)
+        self.x = source.x  + rx#random.randint(0, 180)
+        self.y = source.y  + ry#random.randint(0, 100)
         # the speed variables represent how many pixels the photon moves in each axis per frame
         self.h_speed = -10
         self.v_speed = 4
@@ -53,6 +54,17 @@ class Photon:
         index = self.find_self()
         Photon.PhotonList.pop(index)
         del self
+
+    # Method that creates two random numbers following a normal distribution using Box Muller transform
+    # Returns a tuple of the two numbers
+    # Parameters are source.mean and source.std
+    def random_normal(self, source):
+        u1 = random.random()
+        u2 = random.random()
+        z1 = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+        z2 = math.sqrt(-2 * math.log(u1)) * math.sin(2 * math.pi * u2)
+        return z1 * source.std + source.mean, z2 * source.std + source.mean
+
 
     # Allows a photon to find itself in the PhotonList by comparing itself to each item in the list
     # Returns the index of that photon in the PhotonList
@@ -182,6 +194,25 @@ class Metal:
         # On Initialisation adds the metal's name to a list of metal names
         Metal.MetalNames.append(name)
 
+# Class to represent a light source
+class Source:
+
+    # Static list of source objects
+    SourceList = []
+    # Static list of the names of all light source objects
+    SourceNames = []
+
+    # Parameters:
+    # name - The Source's name
+    def __init__(self, name, x, y, mean, std):
+        self.name = name
+        self.x = x
+        self.y = y
+        self.mean = mean
+        self.std = std
+        # On Initialisation adds the light source's name to a list of light source names
+        Source.SourceNames.append(name)
+
 
 # Beginning of actual code
 # Initialise all pygame modules before they can be used
@@ -230,7 +261,7 @@ def get_float_from_string(text):
 
 
 # Called 30 times a second to check if an photon should be emitted
-def emit_photon(current_metal, intensity, wavelength):
+def emit_photon(current_metal, current_source, intensity, wavelength):
     # firstly checks if intensity is above 0, if not, no photons are being released
     if intensity > 0:
         # Photon.LastEmitted is a timer, whenever it reaches 0, a photon should be emitted
@@ -243,7 +274,7 @@ def emit_photon(current_metal, intensity, wavelength):
             # If its positive, it has escaped the metal surface
             kin_energy = tot_energy - current_metal.work_func
             # Creates a new Photon
-            Photon.PhotonList.append(Photon((set_light_colour(wavelength)), kin_energy))
+            Photon.PhotonList.append(Photon((set_light_colour(wavelength)), current_source, kin_energy))
             # Sets LastEmitted to a value inversely proportional to intensity
             # Higher the intensity, the sooner the next photon with be released
             Photon.LastEmitted = math.ceil((1/intensity) * 100)
@@ -260,6 +291,13 @@ def find_metal(name):
         if name == m.name:
             new_metal = m
     return new_metal
+
+def find_source(name):
+    new_source = None
+    for s in Source.SourceList:
+        if name == s.name:
+            new_source = s
+    return new_source
 
 
 # Loads any custom made metals the user has previously created
@@ -434,8 +472,23 @@ def game_loop():
     Metal.MetalList.append(Metal("Copper", 7.53 * math.pow(10, -19), (145, 88, 4)))
     Metal.MetalList.append(Metal("Zinc", 6.89 * math.pow(10, -19), (185, 195, 185)))
     Metal.MetalList.append(Metal("Magnesium", 5.90 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Aluminum", 6.53688 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Beryllium", 8.0109 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Cadmium", 6.52086 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Calcium", 4.6463 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Carbon", 7.70647 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Gold", 8.1711 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Platinum", 1.01738 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Iron", 7.2098 * math.pow(10, -19), (205, 205, 205)))
     # Sets starting metal to the first one in the list (sodium)
     current_metal = Metal.MetalList[0]
+
+    # Appends default sources to the metal list
+    Source.SourceList.append(Source("Lamp", 500+16, 150+54, 60, 30))
+    Source.SourceList.append(Source("Laser",500+16, 150+84, 60, 1))
+    # Source.SourceList.append(Source("Led", (), (), )))
+    # Sets starting source to the first one in the list (lamp)
+    current_source = Source.SourceList[0]
 
     # Defines the fonts that the program will use for drawing text
     my_font = pygame.font.Font(None, 32)
@@ -447,12 +500,13 @@ def game_loop():
     intensity_txt = my_font.render("Intensity: ", 1, black)
     intensity_txt2 = my_font.render("%", 1, black)
     metal_txt = my_font.render("Metal: ", 1, black)
+    source_txt = my_font.render("Source: ", 1, black)
     stop_txt = my_font.render("Stopping Voltage: ", 1, black)
     stop_txt2 = my_font.render("V", 1, black)
 
     # Rectangles on left and right to represent metals
-    left_rect = MetalRect(10, 400, 50, 150)
-    right_rect = MetalRect(740, 400, 50, 150)
+    left_rect = MetalRect(10, 360, 50, 210)
+    right_rect = MetalRect(740, 360, 50, 210)
 
     # Wavelength Slider bar creation
     wv_slider = dan_gui.Slider(150, 5, 200, 25, small_font, (100, 850))
@@ -460,34 +514,36 @@ def game_loop():
     wavelength = wv_slider.get_pos()
 
     # Intensity slider bar creation
-    int_slider = dan_gui.Slider(150, 40, 200, 25, small_font, (0, 100))
+    int_slider = dan_gui.Slider(150, 40, 200, 25, small_font, (0, 100), starting_pos=0)
     # Setting default intensity
     intensity = int_slider.get_pos()
     # Stopping voltage slider creation
     stop_slider = dan_gui.Slider(300, 550, 200, 25, small_font, (-3, 3), 0.5, 1)
     stop_voltage = stop_slider.get_pos()
     # Dropdown menu creation
-    drop = dan_gui.DropDown(90, 90, 120, 25, Metal.MetalNames, my_font)
+    metal_drop = dan_gui.DropDown(90, 90, 120, 25, Metal.MetalNames, my_font)
+    source_drop = dan_gui.DropDown(90, 120, 120, 25, Source.SourceNames, my_font)
+    
     # Loads custom metals from the file
-    drop = load_custom_metals(drop)
+    metal_drop = load_custom_metals(metal_drop)
     # 'Create new metal' button creation
     btn = dan_gui.Button(250, 90, my_font, "Create New Metal")
     # Adding electron speed text to screen
     speed_obj = my_font.render("Average speed: 0 ms^-1", 1, (0, 0, 0))
 
     # Settings button
-    settings_btn = dan_gui.ImageButton(730, 10, my_font, "options")
+    # settings_btn = dan_gui.ImageButton(730, 10, my_font, "options")
 
     # Adding buttons to save and load settings
-    save_button = dan_gui.Button(270, 130, my_font, "Save Values")
-    load_button = dan_gui.Button(270, 160, my_font, "Load Values")
+    # save_button = dan_gui.Button(270, 130, my_font, "Save Values")
+    # load_button = dan_gui.Button(270, 160, my_font, "Load Values")
 
     # Creating surface for transparent light texture
     surf = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
     surf.set_alpha(set_light_alpha(wavelength, intensity))
 
-    # Image for the lamp
-    lamp_img = pygame.image.load("img/lamp.png")
+    # Image for the light source
+    lamp_img = pygame.image.load("img/"+current_source.name.lower()+".png")
 
     # Creating menu
     cnm_menu = dan_gui.Menu(200, 200, 450, 280, my_font, "Create New Metal")
@@ -589,9 +645,9 @@ def game_loop():
         stop_slider.update(x)
         # Checks if buttons are clicked with built in delay to prevent accidental muliple clicks
         btn.update(x, y)
-        save_button.update(x, y)
-        load_button.update(x, y)
-        settings_btn.update(x, y)
+        # save_button.update(x, y)
+        # load_button.update(x, y)
+        # settings_btn.update(x, y)
         # Updates all elements in cnm menu - see Menu object in dan_Gui.py for explanation
         cnm_menu.update(x, y)
         # Updates colours in RGB slider base on slider position
@@ -611,20 +667,23 @@ def game_loop():
             # Checking for mouse clicked, gives position
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # Check if the drop down box is changed
-                changed = drop.on_click(x, y)
                 # If it has been changed then the current_metal is set to the metal selected by the drop down box
-                if changed:
-                    name = drop.data[drop.current_opt]
+                if metal_drop.on_click(x, y):
+                    name = metal_drop.data[metal_drop.current_opt]
                     current_metal = find_metal(name)
+                if source_drop.on_click(x, y):
+                    name = source_drop.data[source_drop.current_opt]
+                    lamp_img = pygame.image.load("img/"+name.lower()+".png")
+                    current_source = find_source(name)
                 # Passes mouse co-ords onto sliders when click registered
                 wv_slider.on_click(x, y)
                 int_slider.on_click(x, y)
                 stop_slider.on_click(x, y)
                 # passes mouse co-ords onto buttons when clicked
                 btn.on_click(x, y)
-                save_button.on_click(x, y)
-                load_button.on_click(x, y)
-                settings_btn.on_click(x, y)
+                # save_button.on_click(x, y)
+                # load_button.on_click(x, y)
+                # settings_btn.on_click(x, y)
                 # Checks clicks in the menus if open
                 if cnm_menu.visible:
                     cnm_menu.on_click(x, y)
@@ -641,10 +700,10 @@ def game_loop():
                 stop_slider.on_unclick()
                 # When unclicked, triggers methods in buttons and menus
                 btn.on_unclick()
-                save_button.on_unclick()
-                load_button.on_unclick()
+                # save_button.on_unclick()
+                # load_button.on_unclick()
                 cnm_menu.on_unclick()
-                settings_btn.on_unclick()
+                # settings_btn.on_unclick()
                 settings_menu.on_unclick()
                 store_menu.on_unclick()
 
@@ -674,8 +733,8 @@ def game_loop():
             cnm_menu.visible = True
         # Checks if settings menu button has been clicked
         # Opens Settings menu if no other open menus
-        if settings_btn.clicked and not cnm_menu.visible:
-            settings_menu.visible = True
+        # if settings_btn.clicked and not cnm_menu.visible:
+        #     settings_menu.visible = True
 
         # Checks if add metal menu button is pressed and text boxes are filled in
         if menu_ok_button.clicked and menu_name_txt.text != "" and menu_work_txt.text != "": #menu_work_txt + .text
@@ -683,7 +742,7 @@ def game_loop():
             cnm_menu.visible = False
             # Creates a new Metal object and adds to drop-down box
             new_metal = Metal(menu_name_txt.text, get_float_from_string(menu_work_txt.text) * math.pow(10, -19), colour)
-            drop = add_new_metal(new_metal, drop)
+            metal_drop = add_new_metal(new_metal, metal_drop)
             # If user chose to save the metal to a file
             if checkbox.on:
                 # Opens the file and tells user if it can't
@@ -704,44 +763,6 @@ def game_loop():
             cnm_menu.visible = False
             menu_name_txt.text = ""
             menu_work_txt.text = ""
-
-        # Checks if save values button is pressed
-        if save_button.clicked:
-            # Tries to open the values file, if it can't, tells the user
-            try:
-                f = open("data/values.dat", "wb")
-                pickle.dump(wv_slider.pointer, f)
-                pickle.dump(int_slider.pointer, f)
-                pickle.dump(drop.current_opt, f)
-                f.close()
-            except FileNotFoundError:
-                print("Cannot open data/value.dat")
-
-        # Checks if load settings button is pressed
-        if load_button.clicked:
-            # Tries to open values file, tells user if can;t
-            try:
-                f = open("data/values.dat", "rb")
-                try:
-                    # Sets slider values to deserialised values from file
-                    wv_slider.pointer = pickle.load(f)
-                    int_slider.pointer = pickle.load(f)
-                    # Tries to set current option of the drop-down box
-                    # Will default to first option if fails to load
-                    try:
-                        drop.current_opt = pickle.load(f)
-                        drop.change_text(drop.data[drop.current_opt])
-                    except IndexError:
-                        drop.current_opt = 0
-                        drop.change_text(drop.data[drop.current_opt])
-                    # Updates current_metal to the metal loaded from file
-                    current_metal = find_metal(drop.data[drop.current_opt])
-                except(EOFError, pickle.UnpicklingError):
-                    pass
-                # Closes file once done to prevent unnecessary memory usage
-                f.close()
-            except FileNotFoundError:
-                print("Cannot open values.dat")
 
         # Checks if the 'save settings' button (from settings menu) has been pressed
         if save_set_btn.clicked:
@@ -811,7 +832,7 @@ def game_loop():
         stop_voltage = stop_slider.get_pos()
 
         # Emits a photon if needed
-        emit_photon(current_metal, intensity, wavelength)
+        emit_photon(current_metal, current_source, intensity, wavelength)
 
         # Draws white over previous frame
         screen.fill(white)
@@ -874,16 +895,18 @@ def game_loop():
         # Metal Text
         screen.blit(metal_txt, (5, 90))
         # Drop down box
-        drop.draw(screen)
+        metal_drop.draw(screen)
+        screen.blit(source_txt, (5, 120))
+        source_drop.draw(screen)
         # Draw button that opens 'Create new metal' menu
         btn.draw(screen)
         # Draws save and load buttons to screen
-        save_button.draw(screen)
-        load_button.draw(screen)
+        # save_button.draw(screen)
+        # load_button.draw(screen)
         # Draw settings button
-        settings_btn.draw(screen)
+        # settings_btn.draw(screen)
 
-        # Draws light from lamp to screen
+        # Draws light from light source to screen
         # Gets alpha (transparency) value for light
         alpha = set_light_alpha(wavelength, intensity)
         # Combines colour with alpha in 1 tuple
@@ -892,7 +915,7 @@ def game_loop():
         pygame.draw.polygon(surf, light_colour, ((60, 400), (60, 550), (700, 380), (512, 202)))
         # Draws transparent surface to screen
         screen.blit(surf, (0, 0))
-        # Draws lamp image
+        # Draws light source image
         screen.blit(lamp_img, (500, 150))
 
         # Draws menus
