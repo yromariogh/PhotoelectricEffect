@@ -98,7 +98,7 @@ class DropDown(Element):
     def __init__(self, x, y, width, height, data, font):
         # Calls its parent's init method to get all parent attributes
         Element.__init__(self, x, y, width, height, font)
-        self.bg_colour = light_grey
+        self.bg_colour = white
         self.data = data
         self.current_opt = 0
         self.button_text = self.font.render(self.data[self.current_opt], 1, black)
@@ -172,7 +172,8 @@ class DropDown(Element):
         # Draws the background of the box
         pygame.draw.rect(screen, self.bg_colour, (self.x, self.y, self.width, self.height))
         # Draws the background for the button next to the box
-        pygame.draw.rect(screen, darkGrey, ((self.x + self.width), self.y, DropDown.buttonWidth, self.height))
+        pygame.draw.rect(screen, white, ((self.x + self.width), self.y, DropDown.buttonWidth, self.height))
+        pygame.draw.lines(screen, black, True, ((self.x2, self.y), (self.x2+DropDown.buttonWidth, self.y), (self.x2+DropDown.buttonWidth, self.y+self.height), (self.x2, self.y+self.height)))
         # Draws the triangle inside the button
         pygame.draw.polygon(screen, black, (((self.x + self.width + (DropDown.buttonWidth / 2)),
                                              (self.y + self.height - 3)), ((self.x + self.width + 3), (self.y + 3)),

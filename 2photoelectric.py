@@ -21,6 +21,7 @@ class MetalRect:
     # Draws the rectangle to the screen
     def draw(self, screen, colour):
         pygame.draw.rect(screen, colour, (self.x, self.y, self.width, self.height))
+        pygame.draw.lines(screen, black, True, ((self.x, self.y), (self.x+self.width, self.y), (self.x+self.width, self.y+self.height), (self.x, self.y+self.height)))
 
 
 # Class that models the behaviour of a photon
@@ -415,18 +416,16 @@ def game_loop():
     intensity = 0
 
     # Appends default metals to the metal list
-    Metal.MetalList.append(Metal("Sodium", 3.65 * math.pow(10, -19), (100, 100, 100)))
-    Metal.MetalList.append(Metal("Copper", 7.53 * math.pow(10, -19), (145, 88, 4)))
-    Metal.MetalList.append(Metal("Zinc", 6.89 * math.pow(10, -19), (185, 195, 185)))
-    Metal.MetalList.append(Metal("Magnesium", 5.90 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Aluminum", 6.53688 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Beryllium", 8.0109 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Cadmium", 6.52086 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Calcium", 4.6463 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Carbon", 7.70647 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Gold", 8.1711 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Platinum", 1.01738 * math.pow(10, -19), (205, 205, 205)))
-    Metal.MetalList.append(Metal("Iron", 7.2098 * math.pow(10, -19), (205, 205, 205)))
+    Metal.MetalList.append(Metal("Sodium", 3.65 * math.pow(10, -19), (255,252,238)))
+    Metal.MetalList.append(Metal("Copper", 7.53 * math.pow(10, -19), (184, 115, 51)))
+    Metal.MetalList.append(Metal("Zinc", 6.89 * math.pow(10, -19), (146,137,138)))
+    Metal.MetalList.append(Metal("Magnesium", 5.90 * math.pow(10, -19), (193,194,195)))
+    Metal.MetalList.append(Metal("Aluminum", 6.53688 * math.pow(10, -19), (217, 218, 217)))
+    Metal.MetalList.append(Metal("Beryllium", 8.0109 * math.pow(10, -19), (139,129,135)))
+    Metal.MetalList.append(Metal("Calcium", 4.6463 * math.pow(10, -19), (242,244,232)))
+    Metal.MetalList.append(Metal("Gold", 8.1711 * math.pow(10, -19), (212,175,55)))
+    Metal.MetalList.append(Metal("Platinum", 1.01738 * math.pow(10, -19), (229, 228, 226)))
+    Metal.MetalList.append(Metal("Iron", 7.2098 * math.pow(10, -19), (161,157,148)))
     # Sets starting metal to the first one in the list (sodium)
     current_metal = Metal.MetalList[0]
 
@@ -434,7 +433,7 @@ def game_loop():
     Source.SourceList.append(Source("Lamp", 500+16, 150+54, 60, 30, min=350))
     Source.SourceList.append(Source("Laser",500+16, 150+84, 60, 1))
     Source.SourceList.append(Source("Led", 500, 150+5, 60, 5, min=400, max=700))
-    Source.SourceList.append(Source("Incandescent", 478, 150+40, 60, 20, min=700))
+    Source.SourceList.append(Source("Infrared", 478, 150+40, 60, 20, min=700))
     Source.SourceList.append(Source("Bulb", 480, 150+38, 60, 18, min=450, max=650))
     # Sets starting source to the first one in the list (lamp)
     current_source = Source.SourceList[0]
@@ -447,7 +446,7 @@ def game_loop():
     wave_txt = my_font.render("Wavelength: ", 1, (0, 0, 0))
     wave_txt2 = my_font.render("[nm]", 1, (0, 0, 0))
     intensity_txt = my_font.render("Intensity: ", 1, black)
-    intensity_txt2 = my_font.render("%", 1, black)
+    intensity_txt2 = my_font.render("[%]", 1, black)
     metal_txt = my_font.render("Metal: ", 1, black)
     source_txt = my_font.render("Source: ", 1, black)
     stop_txt = my_font.render("Stopping Voltage: ", 1, black)
@@ -458,23 +457,24 @@ def game_loop():
     right_rect = MetalRect(740, 360, 50, 210)
 
     # Wavelength Slider bar creation
-    wv_slider = dan_gui.Slider(150, 5, 200, 25, small_font, (100, 850))
+    wv_slider = dan_gui.Slider(175, 5, 525, 25, small_font, (100, 850))
     # Setting default wavelength
     wavelength = wv_slider.get_pos()
 
     # Intensity slider bar creation
-    int_slider = dan_gui.Slider(150, 40, 200, 25, small_font, (0, 100), starting_pos=0)
+    int_slider = dan_gui.Slider(175, 40, 525, 25, small_font, (0, 100), starting_pos=0)
     # Setting default intensity
     intensity = int_slider.get_pos()
     # Stopping voltage slider creation
-    stop_slider = dan_gui.Slider(300, 550, 200, 25, small_font, (-3, 3), 0.5, 1)
+    stop_slider = dan_gui.Slider(320, 574, 200, 25, small_font, (-3, 3), 0.5, 1)
     stop_voltage = stop_slider.get_pos()
     # Dropdown menu creation
-    metal_drop = dan_gui.DropDown(90, 90, 150, 25, Metal.MetalNames, my_font)
-    source_drop = dan_gui.DropDown(90, 120, 150, 25, Source.SourceNames, my_font)
+    metal_drop = dan_gui.DropDown(70, 80, 122, 25, Metal.MetalNames, my_font)
+    source_drop = dan_gui.DropDown(335, 80, 88, 25, Source.SourceNames, my_font)
     
     # Adding electron speed text to screen
-    speed_obj = my_font.render("Average speed: 0 [m/s]", 1, (0, 0, 0))
+    speed_obj = my_font.render("Average speed: ####### ", 1, (0, 0, 0))
+    speed_txt = my_font.render("[m/s]", 1, black)
 
     # Creating surface for transparent light texture
     surf = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
@@ -574,41 +574,42 @@ def game_loop():
             # Converts kinetic energy to speed
             speed = round(math.sqrt((2*average_ke)/Electron.Mass))
             # Creates a pygame Text object for rendering the speed
-            speed_obj = small_font.render(("Average Speed: " + str(speed) + " [m/s]"), 1, black)
+            speed_obj = my_font.render(("Average Speed: " + str(speed)), 1, black)
 
         # Draws background for wavelength, intensity and current metal selectors
-        pygame.draw.rect(screen, lightGrey, (0, 0, 450, 200))
+        # pygame.draw.rect(screen, lightGrey, (0, 0, 450, 200))
         # Draws border around bottom and right sides of box
-        pygame.draw.lines(screen, black, False, ((0, 200), (450, 200), (450, 0)), 2)
+        # pygame.draw.lines(screen, black, False, ((0, 200), (450, 200), (450, 0)), 2)
         # Drawing average speed
-        screen.blit(speed_obj, (5, 150))
+        screen.blit(speed_obj, (480, 80))
+        screen.blit(speed_txt, (746, 80))
         # Left rectangle
         left_rect.draw(screen, current_metal.colour)
         # Right rectangle
         right_rect.draw(screen, current_metal.colour)
         # Wavelength slider prompt
-        screen.blit(wave_txt, (5, 5))
+        screen.blit(wave_txt, (3, 5))
         # Wavelength slider
         wv_slider.draw(screen)
         # Wavelength slider suffix
-        screen.blit(wave_txt2, (400, 5))
+        screen.blit(wave_txt2, (750, 5))
         # Intensity slider prompt
-        screen.blit(intensity_txt, (5, 40))
+        screen.blit(intensity_txt, (3, 40))
         # Intensity slider suffix
-        screen.blit(intensity_txt2, (400, 40))
+        screen.blit(intensity_txt2, (750, 40))
         # Draw intensity slider
         int_slider.draw(screen)
         # Stopping voltage slider
         stop_slider.draw(screen)
         # Stopping voltage slider prompt
-        screen.blit(stop_txt, (100, 550))
+        screen.blit(stop_txt, (100, 574))
         # Stopping voltage slider suffix
-        screen.blit(stop_txt2, (540, 550))
+        screen.blit(stop_txt2, (540, 574))
         # Metal Text
-        screen.blit(metal_txt, (5, 90))
+        screen.blit(metal_txt, (3, 80))
         # Drop down box
         metal_drop.draw(screen)
-        screen.blit(source_txt, (5, 120))
+        screen.blit(source_txt, (253, 80))
         source_drop.draw(screen)
 
         # Draws light from light source to screen
