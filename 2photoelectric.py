@@ -10,11 +10,12 @@ class MetalRect:
 
     # Takes x, y, width and height as parameters
     # Used in drawing the rectangle
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, colour):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
+        self.colour = colour
         # Creates a pygame Rect object to manage collisions
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
@@ -87,18 +88,18 @@ class Photon:
     # Takes stop_voltage for should_create_electron
     # If collision detected, checks if electron should be made
     # Electron object made if necessary, then photon is deleted
-    def check_collision(self, rect, stop_voltage):
-        if self.rect.colliderect(rect):
+    def check_collision(self, plate, stop_voltage):
+        if self.rect.colliderect(plate.rect):
             if self.should_create_electron(stop_voltage):
-                self.create_electron()
+                self.create_electron(plate.colour)
             self.destroy()
         # If photon goes off screen (either too far left or too far right) then it is deleted
         elif self.x < -2*Photon.Radius or self.y > 800 + 2*Photon.Radius:
             self.destroy()
 
     # Creates an electron object with the same y co-ord and kinetic energy
-    def create_electron(self):
-        Electron.ElectronList.append(Electron(self.y, self.kinEnergy))
+    def create_electron(self, colour):
+        Electron.ElectronList.append(Electron(self.y, self.kinEnergy, colour))
 
     # If the kinetic energy of the photon (minus stopping voltage) is greater than 0, returns true
     def should_create_electron(self, stop_voltage):
@@ -128,12 +129,13 @@ class Electron:
     Mass = 9.11 * math.pow(10, -31)
 
     # Takes in the y co-ord and kinetic energy as parameters
-    def __init__(self, y, kin_energy):
+    def __init__(self, y, kin_energy, colour):
         self.kinEnergy = kin_energy
         self.x = 60
         self.y = y
         self.draw_x = round(self.x)
         self.draw_y = round(self.y)
+        self.colour = colour
         # Creates a pygame Rect object to handle collisions
         self.rect = pygame.Rect(self.draw_x, self.draw_y, 2 * Electron.Radius, 2 * Electron.Radius)
         # Gets the speed of the electron in pixels per frame by multiplying it by 10^19
@@ -170,7 +172,7 @@ class Electron:
     # Draws a circle to represent the electron
     def draw(self, screen):
         # Draw inner part
-        pygame.draw.circle(screen, (60, 230, 255), (self.draw_x, self.draw_y), Electron.Radius - 1)
+        pygame.draw.circle(screen, self.colour, (self.draw_x, self.draw_y), Electron.Radius - 1)
         # Draw border
         pygame.draw.circle(screen, (0, 0, 0), (self.draw_x, self.draw_y), Electron.Radius, 2)
 
@@ -416,25 +418,27 @@ def game_loop():
     intensity = 0
 
     # Appends default metals to the metal list
+    Metal.MetalList.append(Metal("Platinum", 1.01738 * math.pow(10, -19), (229, 228, 226)))
     Metal.MetalList.append(Metal("Sodium", 3.65 * math.pow(10, -19), (255,252,238)))
-    Metal.MetalList.append(Metal("Copper", 7.53 * math.pow(10, -19), (184, 115, 51)))
-    Metal.MetalList.append(Metal("Zinc", 6.89 * math.pow(10, -19), (146,137,138)))
+    Metal.MetalList.append(Metal("Calcium", 4.6463 * math.pow(10, -19), (242,244,232)))
     Metal.MetalList.append(Metal("Magnesium", 5.90 * math.pow(10, -19), (193,194,195)))
     Metal.MetalList.append(Metal("Aluminum", 6.53688 * math.pow(10, -19), (217, 218, 217)))
-    Metal.MetalList.append(Metal("Beryllium", 8.0109 * math.pow(10, -19), (139,129,135)))
-    Metal.MetalList.append(Metal("Calcium", 4.6463 * math.pow(10, -19), (242,244,232)))
-    Metal.MetalList.append(Metal("Gold", 8.1711 * math.pow(10, -19), (212,175,55)))
-    Metal.MetalList.append(Metal("Platinum", 1.01738 * math.pow(10, -19), (229, 228, 226)))
+    Metal.MetalList.append(Metal("Zinc", 6.89 * math.pow(10, -19), (146,137,138)))
     Metal.MetalList.append(Metal("Iron", 7.2098 * math.pow(10, -19), (161,157,148)))
+    Metal.MetalList.append(Metal("Copper", 7.53 * math.pow(10, -19), (184, 115, 51)))    
+    Metal.MetalList.append(Metal("Beryllium", 8.0109 * math.pow(10, -19), (139,129,135)))
+    Metal.MetalList.append(Metal("Gold", 8.1711 * math.pow(10, -19), (212,175,55)))
+
     # Sets starting metal to the first one in the list (sodium)
     current_metal = Metal.MetalList[0]
 
     # Appends default sources to the metal list
-    Source.SourceList.append(Source("Lamp", 500+16, 150+54, 60, 30, min=350))
     Source.SourceList.append(Source("Laser",500+16, 150+84, 60, 1))
+    Source.SourceList.append(Source("Lamp", 500+16, 150+54, 60, 30, min=350))
     Source.SourceList.append(Source("Led", 500, 150+5, 60, 5, min=400, max=700))
-    Source.SourceList.append(Source("Infrared", 478, 150+40, 60, 20, min=700))
     Source.SourceList.append(Source("Bulb", 480, 150+38, 60, 18, min=450, max=650))
+    Source.SourceList.append(Source("Infrared", 478, 150+40, 60, 20, min=700))
+    
     # Sets starting source to the first one in the list (lamp)
     current_source = Source.SourceList[0]
 
@@ -453,8 +457,8 @@ def game_loop():
     stop_txt2 = my_font.render("[V]", 1, black)
 
     # Rectangles on left and right to represent metals
-    left_rect = MetalRect(10, 360, 50, 210)
-    right_rect = MetalRect(740, 360, 50, 210)
+    left_rect = MetalRect(10, 360, 50, 210, current_metal.colour)
+    right_rect = MetalRect(740, 360, 50, 210, current_metal.colour)
 
     # Wavelength Slider bar creation
     wv_slider = dan_gui.Slider(175, 5, 525, 25, small_font, (100, 850))
@@ -557,7 +561,7 @@ def game_loop():
             # #Draws the photon if the setting for drawing photons is enabled
             photon.draw(screen)
             # Checks if photon has hit left metal plate
-            photon.check_collision(left_rect.rect, stop_voltage)
+            photon.check_collision(left_rect, stop_voltage)
 
         # Draw Electrons and calculate their average speed using their kinetic energy
         total_ke = 0
