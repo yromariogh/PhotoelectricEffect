@@ -1,22 +1,23 @@
 import pygame
 import random
+import time
 import math
 import dan_gui
 
 # Method that creates two random numbers following a normal distribution using Box Muller transform
 # Returns a tuple of the two numbers
 # Parameters are source.mean and source.std
-def random_normal(source):
+def random_normal(mean, std): # Box-Muller transform
     u1 = random.random()
     u2 = random.random()
     z1 = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
     z2 = math.sqrt(-2 * math.log(u1)) * math.sin(2 * math.pi * u2)
-    return z1 * source.std + source.mean, z2 * source.std + source.mean
+    return z1 * std + mean, z2 * std + mean
 
 #Function that produces a random number using the inverse transform method following the exponential distribution
 #Returns a random number
 #Parameters are lambda
-def random_exponential(lam):
+def random_exponential(lam): #Inverse transform method
     u = random.random()
     return -math.log(1-u)/lam    
 
@@ -58,7 +59,7 @@ class Photon:
         self.colour = colour
         self.kinEnergy = kin_energy
         # Randomises x and y co-ords along the bottom of the light source image
-        rx, ry = random_normal(source)
+        rx, ry = random_normal(source.mean, source.std)
         self.x = source.x  + rx#random.randint(0, 180)
         self.y = source.y  + ry#random.randint(0, 100)
         # the speed variables represent how many pixels the photon moves in each axis per frame
@@ -96,9 +97,10 @@ class Photon:
     # Takes stop_voltage for should_create_electron
     # If collision detected, checks if electron should be made
     # Electron object made if necessary, then photon is deleted
-    def check_collision(self, plate, stop_voltage):
+    def check_collision(self, plate, stop_voltage, count_collisions):
         if self.rect.colliderect(plate.rect):
             if self.should_create_electron(stop_voltage):
+                count_collisions+=1
                 self.create_electron(plate.colour)
             self.destroy()
         # If photon goes off screen (either too far left or too far right) then it is deleted
@@ -418,7 +420,7 @@ def delete_file(f):
     f.truncate()
 
 # The main game code is run here
-def game_loop():
+def game_loop(ticks,count_ticks,count_collisions):
     # Creating the loop boolean, this is false until the game exits
     game_exit = False
 
@@ -474,14 +476,14 @@ def game_loop():
     # Setting default wavelength
     mean_wavelength = wv_slider.get_pos()
     # wavelength is a normal distribution of with mean mean_wavelength and standard deviation 10
-    wavelength = random.normalvariate(mean_wavelength, 10)
+    wavelength, _ = random_normal(mean_wavelength, 10)
 
     # Intensity slider bar creation
     int_slider = dan_gui.Slider(235, 40, 470, 25, small_font, (0, 100), starting_pos=0)
     # Setting default intensity
     mean_intensity = int_slider.get_pos()
     # intensity is a normal distribution of with mean mean_intensity and standard deviation 5
-    intensity = random.normalvariate(mean_intensity, 5)
+    intensity, _ = random_normal(mean_intensity, 5)
     # Stopping voltage slider creation
     stop_slider = dan_gui.Slider(320, 574, 200, 25, small_font, (-3, 3), 0.5, 1)
     stop_voltage = stop_slider.get_pos()
@@ -490,11 +492,10 @@ def game_loop():
     source_drop = dan_gui.DropDown(312, 78, 110, 25, Source.SourceNames, my_font)
     
     # Adding electron speed text to screen
-    speed_obj = my_font.render("Velocidad media: 0 [m/s]", 1, (0, 0, 0))
+    speed_obj = my_font.render("Velocidad media de los fotones: 0 [m/s]", 1, (0, 0, 0))
     fotones_obj = my_font.render("Número de fotones: 0 ", 1, (0, 0, 0))
     electrones_obj = my_font.render("Número de electrones: 0 ", 1, (0, 0, 0))
-    intensity_obj = my_font.render("Intensidad media: 0 ", 1, (0, 0, 0))
-    wavelength_obj = my_font.render("Longitud de onda media: 0 ", 1, (0, 0, 0))
+    corriente_obj = my_font.render("Corriente: 0 [A]", 1, (0, 0, 0))
 
     # Creating surface for transparent light texture
     surf = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
@@ -577,7 +578,8 @@ def game_loop():
             # #Draws the photon if the setting for drawing photons is enabled
             photon.draw(screen)
             # Checks if photon has hit left metal plate
-            photon.check_collision(left_rect, stop_voltage)
+            photon.check_collision(left_rect, stop_voltage,count_collisions)
+        # print(count_collisions)
 
         # Draw Electrons and calculate their average speed using their kinetic energy
         total_ke = 0
@@ -596,8 +598,9 @@ def game_loop():
             # Converts kinetic energy to speed
             speed = round(math.sqrt((2*average_ke)/Electron.Mass))
             # Creates a pygame Text object for rendering the speed
-            speed_obj = my_font.render(("Velocidad media: " + str(speed)) + " [m/s]", 1, black)
+            speed_obj = my_font.render(("Velocidad media de los fotones: " + str(speed)) + " [m/s]", 1, black)
             electrones_obj = my_font.render(("Número de electrones: " + str(len(Electron.ElectronList))), 1, black)
+            corriente_obj = my_font.render(("Corriente: " + str(len(Electron.ElectronList)/time.time())) + " [A]", 1, black)
 
         # Draws background for wavelength, intensity and current metal selectors
         # pygame.draw.rect(screen, lightGrey, (0, 0, 450, 200))
@@ -605,9 +608,11 @@ def game_loop():
         # pygame.draw.lines(screen, black, False, ((0, 200), (450, 200), (450, 0)), 2)
         # Drawing average speed
         
-        screen.blit(electrones_obj, (3, 120))
-        screen.blit(fotones_obj, (3, 150))
-        screen.blit(speed_obj, (3, 180))
+        screen.blit(speed_obj, (3, 120))
+        screen.blit(electrones_obj, (3, 150))
+        screen.blit(fotones_obj, (3, 180))
+        screen.blit(corriente_obj, (3, 210))
+        
         # Left rectangle
         left_rect.draw(screen, current_metal.colour)
         # Right rectangle
@@ -653,9 +658,16 @@ def game_loop():
         pygame.display.update()
 
         # Makes the program wait so that the main loop only runs 30 times a second
-        clock.tick(30)
+        clock.tick(ticks)
+        count_ticks+=1
+        if count_ticks%ticks==0:
+            count_collisions=0
+            count_ticks=0
+
+
 
 
 # Calls the main loop subroutine to start
 if __name__ == "__main__":
-    game_loop()
+    ticks=30
+    game_loop(ticks,count_ticks=0,count_collisions=0)
