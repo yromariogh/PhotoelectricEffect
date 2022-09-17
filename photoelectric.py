@@ -598,7 +598,7 @@ def game_loop(ticks,count_ticks,count_collisions):
             # Converts kinetic energy to speed
             speed = round(math.sqrt((2*average_ke)/Electron.Mass))
             # Creates a pygame Text object for rendering the speed
-            speed_obj = my_font.render(("Velocidad media de los fotones: " + str(speed)) + " [m/s]", 1, black)
+            speed_obj = my_font.render(("Velocidad media de los electrones: " + str(speed)) + " [m/s]", 1, black)
             electrones_obj = my_font.render(("Número de electrones: " + str(len(Electron.ElectronList))), 1, black)
             corriente_obj = my_font.render(("Corriente: " + str(len(Electron.ElectronList)/time.time())) + " [A]", 1, black)
 
