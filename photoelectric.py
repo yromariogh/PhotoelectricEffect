@@ -429,7 +429,7 @@ def game_loop(ticks,count_ticks,count_collisions):
     intensity = 0
 
     # Appends default metals to the metal list
-    Metal.MetalList.append(Metal("Platino", 1.01738 * math.pow(10, -19), (229, 228, 226))) #
+    Metal.MetalList.append(Metal("Platino", 1.01738 * math.pow(10, -18), (229, 228, 226))) #
     Metal.MetalList.append(Metal("Sodio", 3.65 * math.pow(10, -19), (255,252,238)))
     Metal.MetalList.append(Metal("Calcio", 4.6463 * math.pow(10, -19), (242,244,232)))
     Metal.MetalList.append(Metal("Magnesio", 5.90 * math.pow(10, -19), (193,194,195)))
