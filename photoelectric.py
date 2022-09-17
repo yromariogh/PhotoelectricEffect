@@ -589,18 +589,21 @@ def game_loop(ticks,count_ticks,count_collisions):
             electron.move()
             electron.draw(screen)
             electron.check_pos(right_rect.rect)
+        
+        fotones_obj = my_font.render(("Número de fotones: " + str(len(Photon.PhotonList))), 1, black)
         # If the ElectronList is not empty
-        if len(Photon.PhotonList) > 0:
-            fotones_obj = my_font.render(("Número de fotones: " + str(len(Photon.PhotonList))), 1, black)
+        if len(Electron.ElectronList) == 0:
+            electrones_obj = my_font.render("Número de electrones: 0", 1, black)
+            corriente_obj = my_font.render("Corriente: 0 [A]", 1, black)
+            speed_obj = my_font.render("Velocidad media de los electrones: 0 [m/s]", 1, black)
         if len(Electron.ElectronList) > 0:
             # Calculates average kinetic energy of all electrons
             average_ke = total_ke / len(Electron.ElectronList)
             # Converts kinetic energy to speed
             speed = round(math.sqrt((2*average_ke)/Electron.Mass))
             # Creates a pygame Text object for rendering the speed
-            speed_obj = my_font.render(("Velocidad media de los electrones: " + str(speed)) + " [m/s]", 1, black)
-            electrones_obj = my_font.render(("Número de electrones: " + str(len(Electron.ElectronList))), 1, black)
-            corriente_obj = my_font.render(("Corriente: " + str(len(Electron.ElectronList)/time.time())) + " [A]", 1, black)
+            speed_obj = my_font.render("Velocidad media de los electrones: " + str(speed) + " [m/s]", 1, black)
+            corriente_obj = my_font.render("Corriente: " + str(len(Electron.ElectronList)/time.time()) + " [A]", 1, black)
 
         # Draws background for wavelength, intensity and current metal selectors
         # pygame.draw.rect(screen, lightGrey, (0, 0, 450, 200))
