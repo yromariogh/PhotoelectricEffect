@@ -592,9 +592,9 @@ def game_loop(ticks,count_ticks,count_collisions):
             electron.check_pos(right_rect.rect)
         
         fotones_obj = my_font.render(("Número de fotones: " + str(len(Photon.PhotonList))), 1, black)
+        electrones_obj = my_font.render("Número de electrones: "+ str(len(Electron.ElectronList)), 1, black)
         # If the ElectronList is not empty
         if len(Electron.ElectronList) == 0:
-            electrones_obj = my_font.render("Número de electrones: 0", 1, black)
             corriente_obj = my_font.render("Corriente: 0.0 [A]", 1, black)
             speed_obj = my_font.render("Velocidad media de los electrones: 0 [m/s]", 1, black)
         if len(Electron.ElectronList) > 0:
