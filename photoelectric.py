@@ -106,6 +106,7 @@ class Photon:
         # If photon goes off screen (either too far left or too far right) then it is deleted
         elif self.x < -2*Photon.Radius or self.y > 800 + 2*Photon.Radius:
             self.destroy()
+        return count_collisions
 
     # Creates an electron object with the same y co-ord and kinetic energy
     def create_electron(self, colour):
@@ -489,7 +490,7 @@ def game_loop(ticks,count_ticks,count_collisions):
     stop_voltage = stop_slider.get_pos()
     # Dropdown menu creation
     metal_drop = dan_gui.DropDown(75, 78, 105, 25, Metal.MetalNames, my_font)
-    source_drop = dan_gui.DropDown(312, 78, 110, 25, Source.SourceNames, my_font)
+    source_drop = dan_gui.DropDown(379, 78, 110, 25, Source.SourceNames, my_font)
     
     # Adding electron speed text to screen
     speed_obj = my_font.render("Velocidad media de los fotones: 0 [m/s]", 1, (0, 0, 0))
@@ -578,7 +579,7 @@ def game_loop(ticks,count_ticks,count_collisions):
             # #Draws the photon if the setting for drawing photons is enabled
             photon.draw(screen)
             # Checks if photon has hit left metal plate
-            photon.check_collision(left_rect, stop_voltage,count_collisions)
+            count_collisions = photon.check_collision(left_rect, stop_voltage,count_collisions)
         # print(count_collisions)
 
         # Draw Electrons and calculate their average speed using their kinetic energy
@@ -594,7 +595,7 @@ def game_loop(ticks,count_ticks,count_collisions):
         # If the ElectronList is not empty
         if len(Electron.ElectronList) == 0:
             electrones_obj = my_font.render("Número de electrones: 0", 1, black)
-            corriente_obj = my_font.render("Corriente: 0 [A]", 1, black)
+            corriente_obj = my_font.render("Corriente: 0.0 [A]", 1, black)
             speed_obj = my_font.render("Velocidad media de los electrones: 0 [m/s]", 1, black)
         if len(Electron.ElectronList) > 0:
             # Calculates average kinetic energy of all electrons
@@ -603,7 +604,7 @@ def game_loop(ticks,count_ticks,count_collisions):
             speed = round(math.sqrt((2*average_ke)/Electron.Mass))
             # Creates a pygame Text object for rendering the speed
             speed_obj = my_font.render("Velocidad media de los electrones: " + str(speed) + " [m/s]", 1, black)
-            corriente_obj = my_font.render("Corriente: " + str(len(Electron.ElectronList)/time.time()) + " [A]", 1, black)
+            
 
         # Draws background for wavelength, intensity and current metal selectors
         # pygame.draw.rect(screen, lightGrey, (0, 0, 450, 200))
@@ -614,7 +615,7 @@ def game_loop(ticks,count_ticks,count_collisions):
         screen.blit(speed_obj, (3, 120))
         screen.blit(electrones_obj, (3, 150))
         screen.blit(fotones_obj, (3, 180))
-        screen.blit(corriente_obj, (3, 210))
+        
         
         # Left rectangle
         left_rect.draw(screen, current_metal.colour)
@@ -642,7 +643,7 @@ def game_loop(ticks,count_ticks,count_collisions):
         screen.blit(metal_txt, (3, 80))
         # Drop down box
         metal_drop.draw(screen)
-        screen.blit(source_txt, (225, 80))
+        screen.blit(source_txt, (292, 80))
         source_drop.draw(screen)
 
         # Draws light from light source to screen
@@ -656,16 +657,20 @@ def game_loop(ticks,count_ticks,count_collisions):
         screen.blit(surf, (0, 0))
         # Draws light source image
         screen.blit(lamp_img, (500, 150))
+        # Makes the program wait so that the main loop only runs 30 times a second
+        clock.tick(ticks)
+        count_ticks+=1
+        if count_ticks%ticks==0 and len(Electron.ElectronList)!=0:
+            corriente_obj = my_font.render("Corriente: " + str('{:0.3e}'.format(count_collisions* 1.6 * math.pow(10,-19))) + " [A]", 1, black)
+            count_collisions=0
+            count_ticks=0
+        screen.blit(corriente_obj, (3, 210))
 
         # Updates the display
         pygame.display.update()
 
-        # Makes the program wait so that the main loop only runs 30 times a second
-        clock.tick(ticks)
-        count_ticks+=1
-        if count_ticks%ticks==0:
-            count_collisions=0
-            count_ticks=0
+        
+        
 
 
 
